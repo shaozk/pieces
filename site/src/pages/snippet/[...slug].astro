@@ -1,0 +1,55 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getSnippets } from '../../lib/snippets';
+import { highlight } from '../../lib/highlight';
+
+export function getStaticPaths() {
+  return getSnippets().map((s) => ({ params: { slug: s.slug }, props: { snippet: s } }));
+}
+
+const { snippet } = Astro.props;
+const html = await highlight(snippet.code, snippet.lang);
+const date = snippet.mtime.toISOString().slice(0, 10);
+const rawBase = import.meta.env.BASE_URL;
+const base = rawBase.endsWith('/') ? rawBase.slice(0, -1) : rawBase;
+---
+
+<Layout title={`${snippet.name} · 代码碎片`} description={snippet.desc ?? undefined}>
+  <section class="detail">
+    <nav class="crumb">
+      <a href={`${base}/`}>首页</a>
+      <span class="sep">/</span>
+      <a href={`${base}/?cat=${snippet.dir}`}>{snippet.category}</a>
+      <span class="sep">/</span>
+      <span>{snippet.name}{snippet.ext}</span>
+    </nav>
+    <div class="detail-head">
+      <h1 class="detail-title">{snippet.name}</h1>
+      <span class={`badge badge-${snippet.lang}`}>{snippet.category}</span>
+    </div>
+    {snippet.desc && <p class="detail-desc">{snippet.desc}</p>}
+    <p class="detail-meta">{snippet.slug}{snippet.ext} · {snippet.lines} 行 · 更新于 {date}</p>
+    <div class="code-block line-numbers">
+      <button class="copy-btn" type="button">复制</button>
+      <div set:html={html} />
+    </div>
+    <p class="detail-back"><a href={`${base}/`}>← 返回全部碎片</a></p>
+  </section>
+
+  <script>
+    const btn = document.querySelector<HTMLButtonElement>('.copy-btn');
+    btn?.addEventListener('click', async () => {
+      const pre = btn.parentElement?.querySelector('pre');
+      if (!pre) return;
+      try {
+        await navigator.clipboard.writeText(pre.textContent ?? '');
+        btn.textContent = '已复制';
+      } catch {
+        btn.textContent = '复制失败';
+      }
+      setTimeout(() => {
+        btn.textContent = '复制';
+      }, 2000);
+    });
+  </script>
+</Layout>

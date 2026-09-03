@@ -1,0 +1,32 @@
+---
+import type { Snippet } from '../lib/snippets';
+import { highlight, truncateLines } from '../lib/highlight';
+
+interface Props {
+  snippet: Snippet;
+}
+
+const { snippet } = Astro.props;
+const { text, truncated } = truncateLines(snippet.code);
+const preview = await highlight(text, snippet.lang);
+const date = snippet.mtime.toISOString().slice(0, 10);
+const rawBase = import.meta.env.BASE_URL;
+const base = rawBase.endsWith('/') ? rawBase.slice(0, -1) : rawBase;
+---
+
+<article class="card" data-slug={snippet.slug}>
+  <div class="card-head">
+    <h2 class="card-title">
+      <a href={`${base}/snippet/${snippet.slug}/`}>{snippet.name}</a>
+    </h2>
+    <span class={`badge badge-${snippet.lang}`}>{snippet.category}</span>
+  </div>
+  {snippet.desc && <p class="card-desc">{snippet.desc}</p>}
+  <div class:list={['card-preview', truncated && 'is-truncated']}>
+    <div set:html={preview} />
+  </div>
+  <div class="card-foot">
+    <span>{snippet.lines} 行 · {date}</span>
+    <a class="more" href={`${base}/snippet/${snippet.slug}/`}>查看完整代码 →</a>
+  </div>
+</article>

@@ -1,0 +1,110 @@
+---
+import Layout from '../layouts/Layout.astro';
+import CodeCard from '../components/CodeCard.astro';
+import { getSnippets, getCategories } from '../lib/snippets';
+
+const snippets = getSnippets();
+const categories = getCategories(snippets);
+const searchIndex = snippets.map((s) => ({
+  slug: s.slug,
+  name: s.name,
+  dir: s.dir,
+  category: s.category,
+  code: s.code,
+}));
+const indexJson = JSON.stringify(searchIndex).replace(/</g, '\\u003c');
+---
+
+<Layout title="代码碎片 · Code Pieces">
+  <section class="toolbar">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input id="search" type="search" placeholder="搜索标题、语言或代码内容…" autocomplete="off" />
+    </div>
+    <div class="chips" id="chips">
+      <button class="chip active" data-cat="all" type="button">全部 <span class="count">{snippets.length}</span></button>
+      {categories.map((c) => (
+        <button class="chip" data-cat={c.dir} type="button">
+          {c.label} <span class="count">{c.count}</span>
+        </button>
+      ))}
+    </div>
+    <p class="result-meta" id="result-meta"></p>
+  </section>
+
+  <section class="grid" id="grid">
+    {snippets.map((s) => <CodeCard snippet={s} />)}
+  </section>
+
+  <div class="empty hidden" id="empty">
+    <p class="empty-title">没有匹配的代码碎片</p>
+    <p class="empty-hint">试试其他关键词，或切换分类</p>
+  </div>
+
+  <script is:inline type="application/json" id="snippet-index" set:html={indexJson} />
+
+  <script>
+    const indexEl = document.getElementById('snippet-index');
+    const data = JSON.parse(indexEl?.textContent ?? '[]');
+    const cards = new Map<string, HTMLElement>();
+    for (const el of document.querySelectorAll<HTMLElement>('.card')) {
+      if (el.dataset.slug) cards.set(el.dataset.slug, el);
+    }
+    const input = document.getElementById('search') as HTMLInputElement | null;
+    const chips = [...document.querySelectorAll<HTMLButtonElement>('.chip')];
+    const meta = document.getElementById('result-meta');
+    const empty = document.getElementById('empty');
+    const grid = document.getElementById('grid');
+    const total = data.length;
+
+    let cat = new URLSearchParams(location.search).get('cat') ?? 'all';
+    if (!chips.some((c) => c.dataset.cat === cat)) cat = 'all';
+    let q = '';
+
+    function apply() {
+      const query = q.toLowerCase();
+      let visible = 0;
+      for (const item of data) {
+        const okCat = cat === 'all' || item.dir === cat;
+        const okQ =
+          !query ||
+          item.name.toLowerCase().includes(query) ||
+          item.dir.toLowerCase().includes(query) ||
+          item.category.toLowerCase().includes(query) ||
+          item.code.toLowerCase().includes(query);
+        const show = okCat && okQ;
+        cards.get(item.slug)?.classList.toggle('hidden', !show);
+        if (show) visible++;
+      }
+      if (meta) {
+        meta.textContent = query ? `${visible} / ${total} 个碎片匹配「${q}」` : `共 ${total} 个碎片`;
+      }
+      empty?.classList.toggle('hidden', visible !== 0);
+      grid?.classList.toggle('hidden', visible === 0);
+    }
+
+    for (const chip of chips) {
+      chip.addEventListener('click', () => {
+        cat = chip.dataset.cat ?? 'all';
+        chips.forEach((c) => c.classList.toggle('active', c === chip));
+        const url = new URL(location.href);
+        if (cat === 'all') url.searchParams.delete('cat');
+        else url.searchParams.set('cat', cat);
+        history.replaceState(null, '', url);
+        apply();
+      });
+    }
+
+    input?.addEventListener('input', () => {
+      q = input.value.trim();
+      apply();
+    });
+
+    const active = chips.find((c) => c.dataset.cat === cat);
+    if (active) chips.forEach((c) => c.classList.toggle('active', c === active));
+    apply();
+  </script>
+</Layout>
