@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/logo.svg" width="200" alt="logo"></p>
+
 # 代码碎片 code-piece
 
 汇总在学习编程语言时候需要测试的一些代码碎片。很杂很乱。
