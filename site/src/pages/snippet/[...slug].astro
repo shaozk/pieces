@@ -4,10 +4,19 @@ import { getSnippets } from '../../lib/snippets';
 import { highlight } from '../../lib/highlight';
 
 export function getStaticPaths() {
-  return getSnippets().map((s) => ({ params: { slug: s.slug }, props: { snippet: s } }));
+  const snippets = getSnippets();
+  const last = snippets.length - 1;
+  return snippets.map((s, i) => ({
+    params: { slug: s.slug },
+    props: {
+      snippet: s,
+      prev: snippets[i === 0 ? last : i - 1],
+      next: snippets[i === last ? 0 : i + 1],
+    },
+  }));
 }
 
-const { snippet } = Astro.props;
+const { snippet, prev, next } = Astro.props;
 const html = await highlight(snippet.code, snippet.lang);
 const date = snippet.date;
 const rawBase = import.meta.env.BASE_URL;
@@ -17,7 +26,12 @@ const base = rawBase.endsWith('/') ? rawBase.slice(0, -1) : rawBase;
 <Layout title={`${snippet.name} · 代码碎片`} description={snippet.desc ?? undefined}>
   <section class="detail">
     <nav class="crumb">
-      <a href={`${base}/`}>首页</a>
+      <a class="crumb-home" href={`${base}/`} aria-label="返回全部碎片" title="返回全部碎片">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+          <polyline points="9 22 9 12 15 12 15 22"></polyline>
+        </svg>
+      </a>
       <span class="sep">/</span>
       <a href={`${base}/?cat=${snippet.dir}`}>{snippet.category}</a>
       <span class="sep">/</span>
@@ -33,7 +47,16 @@ const base = rawBase.endsWith('/') ? rawBase.slice(0, -1) : rawBase;
       <button class="copy-btn" type="button">复制</button>
       <div set:html={html} />
     </div>
-    <p class="detail-back"><a href={`${base}/`}>← 返回全部碎片</a></p>
+    <nav class="pager" aria-label="碎片导航">
+      <a class="pager-link pager-prev" href={`${base}/snippet/${prev.slug}/`}>
+        <span class="pager-label">← 上一条</span>
+        <span class="pager-name">{prev.name}</span>
+      </a>
+      <a class="pager-link pager-next" href={`${base}/snippet/${next.slug}/`}>
+        <span class="pager-label">下一条 →</span>
+        <span class="pager-name">{next.name}</span>
+      </a>
+    </nav>
   </section>
 
   <script>
@@ -50,6 +73,18 @@ const base = rawBase.endsWith('/') ? rawBase.slice(0, -1) : rawBase;
       setTimeout(() => {
         btn.textContent = '复制';
       }, 2000);
+    });
+  </script>
+
+  <script>
+    const prevLink = document.querySelector<HTMLAnchorElement>('.pager-prev');
+    const nextLink = document.querySelector<HTMLAnchorElement>('.pager-next');
+    document.addEventListener('keydown', (e) => {
+      if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      if (e.key === 'ArrowLeft' && prevLink) location.assign(prevLink.href);
+      else if (e.key === 'ArrowRight' && nextLink) location.assign(nextLink.href);
     });
   </script>
 </Layout>
