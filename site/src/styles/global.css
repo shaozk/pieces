@@ -235,6 +235,8 @@ html.dark .icon-moon {
 }
 
 .card {
+  position: relative;
+  cursor: pointer;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -269,6 +271,13 @@ html.dark .icon-moon {
 
 .card-title a {
   color: var(--text);
+}
+
+.card-title a::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
 }
 
 .card-title a:hover {
@@ -348,6 +357,8 @@ html.dark .card-preview.is-truncated .shiki::after {
 }
 
 .card-foot .more {
+  position: relative;
+  z-index: 2;
   font-size: 13px;
   white-space: nowrap;
 }
