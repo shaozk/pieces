@@ -9,7 +9,7 @@ interface Props {
 const { snippet } = Astro.props;
 const { text, truncated } = truncateLines(snippet.code);
 const preview = await highlight(text, snippet.lang);
-const date = snippet.mtime.toISOString().slice(0, 10);
+const date = snippet.date;
 const rawBase = import.meta.env.BASE_URL;
 const base = rawBase.endsWith('/') ? rawBase.slice(0, -1) : rawBase;
 ---

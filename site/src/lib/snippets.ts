@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 export interface Snippet {
@@ -13,6 +14,7 @@ export interface Snippet {
   code: string;
   lines: number;
   mtime: Date;
+  date: string;
 }
 
 interface CategoryDef {
@@ -30,6 +32,17 @@ const CATEGORIES: Record<string, CategoryDef> = {
 };
 
 const REPO_ROOT = fileURLToPath(new URL('../../..', import.meta.url));
+
+function gitLastModified(relPath: string): string | null {
+  try {
+    const out = execFileSync('git', ['-C', REPO_ROOT, 'log', '-1', '--format=%cI', '--', relPath], {
+      encoding: 'utf8',
+    });
+    return out.trim() || null;
+  } catch {
+    return null;
+  }
+}
 
 function extractDesc(code: string, lang: string): string | null {
   for (const raw of code.split('\n')) {
@@ -63,6 +76,8 @@ export function getSnippets(): Snippet[] {
       const filePath = path.join(dirPath, entry.name);
       const code = fs.readFileSync(filePath, 'utf8');
       const name = path.basename(entry.name, ext);
+      const fsMtime = fs.statSync(filePath).mtime;
+      const iso = gitLastModified(path.relative(REPO_ROOT, filePath));
       snippets.push({
         slug: `${dir}/${name}`,
         name,
@@ -73,7 +88,8 @@ export function getSnippets(): Snippet[] {
         lang,
         code,
         lines: code.replace(/\n$/, '').split('\n').length,
-        mtime: fs.statSync(filePath).mtime,
+        mtime: iso ? new Date(iso) : fsMtime,
+        date: iso ? iso.slice(0, 10) : fsMtime.toLocaleDateString('en-CA'),
       });
     }
   }
