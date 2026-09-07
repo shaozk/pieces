@@ -573,12 +573,6 @@ html.dark .shiki span {
   white-space: nowrap;
 }
 
-@media (max-width: 440px) {
-  .pager {
-    flex-direction: column;
-  }
-}
-
 .site-footer {
   border-top: 1px solid var(--border);
   padding: 20px 0 32px;
