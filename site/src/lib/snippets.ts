@@ -17,19 +17,43 @@ export interface Snippet {
   date: string;
 }
 
-interface CategoryDef {
-  label: string;
-  langs: Record<string, string>;
-}
-
-const CATEGORIES: Record<string, CategoryDef> = {
-  cpp: {
-    label: 'C++',
-    langs: { '.cpp': 'cpp', '.cc': 'cpp', '.cxx': 'cpp', '.h': 'cpp', '.hpp': 'cpp' },
-  },
-  python: { label: 'Python', langs: { '.py': 'python' } },
-  md: { label: 'Markdown', langs: { '.md': 'markdown' } },
+const EXT_LANGS: Record<string, string> = {
+  '.cpp': 'cpp',
+  '.cc': 'cpp',
+  '.cxx': 'cpp',
+  '.hpp': 'cpp',
+  '.h': 'cpp',
+  '.c': 'c',
+  '.py': 'python',
+  '.md': 'markdown',
+  '.ts': 'typescript',
+  '.tsx': 'tsx',
+  '.js': 'javascript',
+  '.jsx': 'jsx',
+  '.json': 'json',
+  '.go': 'go',
+  '.rs': 'rust',
+  '.java': 'java',
+  '.sh': 'bash',
+  '.bash': 'bash',
+  '.zsh': 'bash',
+  '.html': 'html',
+  '.htm': 'html',
+  '.css': 'css',
+  '.sql': 'sql',
+  '.yaml': 'yaml',
+  '.yml': 'yaml',
+  '.toml': 'toml',
 };
+
+const IGNORED_DIRS = new Set(['site', 'assets', 'node_modules', 'dist']);
+
+const LABEL_OVERRIDES: Record<string, string> = {
+  cpp: 'C++',
+  md: 'Markdown',
+};
+
+const HASH_COMMENT_LANGS = new Set(['python', 'bash', 'yaml', 'toml']);
 
 const REPO_ROOT = fileURLToPath(new URL('../../..', import.meta.url));
 
@@ -52,10 +76,10 @@ function extractDesc(code: string, lang: string): string | null {
       const heading = line.match(/^#{1,6}\s+(.+)/);
       return heading ? heading[1] : line;
     }
-    if (lang === 'python' && line.startsWith('#')) {
+    if (line.startsWith('#') && HASH_COMMENT_LANGS.has(lang)) {
       return line.replace(/^#+\s*/, '');
     }
-    if (lang === 'cpp' && (line.startsWith('//') || line.startsWith('/*'))) {
+    if (line.startsWith('//') || line.startsWith('/*')) {
       return line.replace(/^[/]+\s*/, '').replace(/\s*\*\/$/, '');
     }
     return null;
@@ -63,28 +87,47 @@ function extractDesc(code: string, lang: string): string | null {
   return null;
 }
 
+function* walkFiles(root: string, rel = ''): Generator<string> {
+  const abs = rel ? path.join(root, rel) : root;
+  for (const entry of fs.readdirSync(abs, { withFileTypes: true })) {
+    if (entry.name.startsWith('.')) continue;
+    const relPath = rel ? `${rel}/${entry.name}` : entry.name;
+    if (entry.isDirectory()) {
+      if (IGNORED_DIRS.has(entry.name)) continue;
+      yield* walkFiles(root, relPath);
+    } else if (entry.isFile()) {
+      yield relPath;
+    }
+  }
+}
+
+function dirLabel(dir: string): string {
+  return LABEL_OVERRIDES[dir] ?? dir.charAt(0).toUpperCase() + dir.slice(1);
+}
+
 export function getSnippets(): Snippet[] {
   const snippets: Snippet[] = [];
-  for (const [dir, def] of Object.entries(CATEGORIES)) {
-    const dirPath = path.join(REPO_ROOT, dir);
-    if (!fs.existsSync(dirPath)) continue;
-    for (const entry of fs.readdirSync(dirPath, { withFileTypes: true })) {
-      if (!entry.isFile()) continue;
-      const ext = path.extname(entry.name).toLowerCase();
-      const lang = def.langs[ext];
+  for (const entry of fs.readdirSync(REPO_ROOT, { withFileTypes: true })) {
+    if (!entry.isDirectory() || entry.name.startsWith('.') || IGNORED_DIRS.has(entry.name)) continue;
+    const dir = entry.name;
+    const category = dirLabel(dir);
+    for (const relPath of walkFiles(path.join(REPO_ROOT, dir))) {
+      const ext = path.extname(relPath).toLowerCase();
+      const lang = EXT_LANGS[ext];
       if (!lang) continue;
-      const filePath = path.join(dirPath, entry.name);
+      const filePath = path.join(REPO_ROOT, dir, relPath);
       const code = fs.readFileSync(filePath, 'utf8');
-      const name = path.basename(entry.name, ext);
+      const stem = relPath.slice(0, relPath.length - ext.length);
+      const name = path.basename(stem);
       const fsMtime = fs.statSync(filePath).mtime;
       const iso = gitLastModified(path.relative(REPO_ROOT, filePath));
       snippets.push({
-        slug: `${dir}/${name}`,
+        slug: `${dir}/${stem}`,
         name,
         ext,
         desc: extractDesc(code, lang),
         dir,
-        category: def.label,
+        category,
         lang,
         code,
         lines: code.replace(/\n$/, '').split('\n').length,

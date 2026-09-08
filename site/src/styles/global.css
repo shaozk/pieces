@@ -294,20 +294,71 @@ html.dark .icon-moon {
   line-height: 1.6;
 }
 
-.badge-cpp {
-  background: #00599c;
-  color: #fff;
-}
-
 .badge-python {
   background: #3776ab;
   color: #fff;
 }
 
-.badge-markdown {
+.badge-markdown,
+.badge-json,
+.badge-yaml,
+.badge-toml {
   background: var(--chip);
   color: var(--muted);
   border-color: var(--border);
+}
+
+.badge-c,
+.badge-cpp {
+  background: #00599c;
+  color: #fff;
+}
+
+.badge-typescript,
+.badge-tsx {
+  background: #3178c6;
+  color: #fff;
+}
+
+.badge-javascript,
+.badge-jsx {
+  background: #f7df1e;
+  color: #24292f;
+}
+
+.badge-go {
+  background: #00add8;
+  color: #fff;
+}
+
+.badge-rust {
+  background: #ce422b;
+  color: #fff;
+}
+
+.badge-java {
+  background: #b07219;
+  color: #fff;
+}
+
+.badge-bash {
+  background: #4eaa25;
+  color: #fff;
+}
+
+.badge-html {
+  background: #e34c26;
+  color: #fff;
+}
+
+.badge-css {
+  background: #563d7c;
+  color: #fff;
+}
+
+.badge-sql {
+  background: #e38c00;
+  color: #fff;
 }
 
 .card-desc {
