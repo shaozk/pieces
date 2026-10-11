@@ -11,4 +11,5 @@ int maxSubArray(vector<int>& nums) {
         result = max(result, pre);
     }
     return result;
+}
 
