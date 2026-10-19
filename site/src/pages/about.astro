@@ -20,6 +20,26 @@ const contributors = (() => {
   return [...map.values()].sort((a, b) => b.count - a.count);
 })();
 
+const total = snippets.length;
+const PALETTE = ['#3b82f6', '#f97316', '#10b981', '#8b5cf6', '#ef4444', '#eab308', '#06b6d4', '#ec4899'];
+const GAP = 0.6;
+
+let acc = 25;
+const segments = categories.map((c, i) => {
+  const pct = (c.count / total) * 100;
+  const seg = { ...c, color: PALETTE[i % PALETTE.length], pct, offset: acc };
+  acc -= pct;
+  return seg;
+});
+
+const maxCount = contributors[0]?.count ?? 1;
+const contribRows = contributors.map((c, i) => ({
+  ...c,
+  rank: i + 1,
+  ratio: (c.count / maxCount) * 100,
+  share: (c.count / total) * 100,
+}));
+
 const tree = `pieces/
 ├── cpp/        # C++ 碎片
 ├── python/     # Python 碎片
@@ -43,7 +63,7 @@ const base = rawBase.endsWith('/') ? rawBase.slice(0, -1) : rawBase;
 <Layout title="关于 · 代码碎片" description="代码碎片 Code Pieces - 学习编程语言时积累的代码片段集合">
   <section class="about">
     <h1 class="about-title">关于本站</h1>
-    <p class="about-sub">很杂很乱，但真实。</p>
+    <p class="about-sub">人人可以提交代码片段的网站。</p>
 
     <div class="about-stats">
       <div class="stat">
@@ -64,65 +84,68 @@ const base = rawBase.endsWith('/') ? rawBase.slice(0, -1) : rawBase;
       </div>
     </div>
 
-    <div class="about-cats">
-      {categories.map((c) => (
-        <a class="about-cat" href={`${base}/?cat=${c.dir}`}>
-          <span>{c.label}</span>
-          <span class="about-cat-count">{c.count}</span>
-        </a>
-      ))}
-    </div>
+      <section class="about-chart" aria-label="分类占比">
+        <svg class="donut" viewBox="0 0 42 42" role="img" aria-label={`碎片分类占比，共 ${total} 个`}>
+          <circle class="donut-track" cx="21" cy="21" r="15.9155" />
+          {segments.map((s) => (
+            <a href={`${base}/?cat=${s.dir}`}>
+              <circle
+                class="donut-seg"
+                cx="21"
+                cy="21"
+                r="15.9155"
+                stroke={s.color}
+                stroke-dasharray={`${Math.max(s.pct - GAP, 0.4)} ${100 - Math.max(s.pct - GAP, 0.4)}`}
+                stroke-dashoffset={s.offset}
+              >
+                <title>{`${s.label}：${s.count} 个（${s.pct.toFixed(1)}%）`}</title>
+              </circle>
+            </a>
+          ))}
+          <text class="donut-num" x="21" y="20.2">{total}</text>
+          <text class="donut-label" x="21" y="24.5">碎片</text>
+        </svg>
+        <div class="chart-legend">
+          {segments.map((s) => (
+            <a class="about-cat" href={`${base}/?cat=${s.dir}`}>
+              <span class="dot" style={`background:${s.color}`} />
+              <span>{s.label}</span>
+              <span class="about-cat-count">{s.count} · {s.pct.toFixed(1)}%</span>
+            </a>
+          ))}
+        </div>
+      </section>
 
-    {contributors.length > 0 && (
-      <div class="about-contribs">
-        {contributors.map((c) => (
-          <span class="contrib" key={c.avatar}>
-            <img
-              class="avatar avatar-lg"
-              src={c.avatar}
-              alt={c.name}
-              loading="lazy"
-              width="24"
-              height="24"
-              referrerpolicy="no-referrer"
-            />
-            <span>{c.name}</span>
-            <span class="contrib-count">{c.count} 个碎片</span>
-          </span>
-        ))}
-      </div>
+    {contribRows.length > 0 && (
+      <section class="contrib-board" aria-label="贡献者排行榜">
+        <h2>贡献者排行榜</h2>
+        <ol class="contrib-list">
+          {contribRows.map((c) => (
+            <li class="contrib-row">
+              <span class={`contrib-rank${c.rank === 1 ? ' is-top' : ''}`}>{c.rank}</span>
+              <img
+                class="avatar avatar-lg"
+                src={c.avatar}
+                alt={c.name}
+                loading="lazy"
+                width="24"
+                height="24"
+                referrerpolicy="no-referrer"
+              />
+              <span class="contrib-name">{c.name}</span>
+              <span class="contrib-bar">
+                <i style={`width:${c.ratio}%`} />
+              </span>
+              <span class="contrib-count">{c.count} 个 · {c.share.toFixed(1)}%</span>
+            </li>
+          ))}
+        </ol>
+      </section>
     )}
 
     <p>
       「代码碎片 Code Pieces」是我在学习编程语言过程中积累下来的代码片段集合：某个语法的行为验证、某个坑的复现、某个写法的对比测试。仓库里每个源码文件就是一个碎片——片段即目录，文件即卡片，站点构建时自动扫描收录，无需手动登记。
     </p>
 
-    <h2>站点特性</h2>
-    <ul>
-      <li>Shiki 构建时语法高亮，亮/暗主题跟随切换</li>
-      <li>按标题、语言、代码内容全文搜索</li>
-      <li>按目录自动分类，URL 形如 <code>/?cat=python</code></li>
-      <li>详情页键盘 <code>←</code> / <code>→</code> 翻页、一键复制代码</li>
-      <li>详情页 giscus 评论，数据存放在 GitHub Discussions</li>
-    </ul>
-
-    <h2>如何添加碎片</h2>
-    <p>
-      直接在 <code>cpp/</code>、<code>python/</code>、<code>md/</code>
-      等目录下新增源码文件即可，站点构建时自动收录（开发模式下需重启 dev
-      server）。建议在文件首行写一句注释，会作为卡片的简介展示。
-    </p>
-    <pre class="about-tree">{tree}</pre>
-
-    <h2>本地运行</h2>
-    <div class="code-block">
-      <div set:html={cmds} />
-    </div>
-
-    <h2>部署</h2>
-    <p>
-      push 到 GitHub 后由 <code>.github/workflows/deploy.yml</code>
-      自动构建并发布到 GitHub Pages。
-    </p>
   </section>
 </Layout>
