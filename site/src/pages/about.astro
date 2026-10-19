@@ -3,10 +3,22 @@ import Layout from '../layouts/Layout.astro';
 import { getSnippets, getCategories } from '../lib/snippets';
 import { highlight } from '../lib/highlight';
 
-const snippets = getSnippets();
+const snippets = await getSnippets();
 const categories = getCategories(snippets).sort((a, b) => b.count - a.count);
 const langs = new Set(snippets.map((s) => s.lang));
 const totalLines = snippets.reduce((sum, s) => sum + s.lines, 0);
+
+const contributors = (() => {
+  const map = new Map<string, { name: string; avatar: string; count: number }>();
+  for (const s of snippets) {
+    for (const a of s.authors) {
+      const c = map.get(a.email) ?? { name: a.name, avatar: a.avatar, count: 0 };
+      c.count++;
+      map.set(a.email, c);
+    }
+  }
+  return [...map.values()].sort((a, b) => b.count - a.count);
+})();
 
 const tree = `pieces/
 ├── cpp/        # C++ 碎片
@@ -60,6 +72,26 @@ const base = rawBase.endsWith('/') ? rawBase.slice(0, -1) : rawBase;
         </a>
       ))}
     </div>
+
+    {contributors.length > 0 && (
+      <div class="about-contribs">
+        {contributors.map((c) => (
+          <span class="contrib" key={c.avatar}>
+            <img
+              class="avatar avatar-lg"
+              src={c.avatar}
+              alt={c.name}
+              loading="lazy"
+              width="24"
+              height="24"
+              referrerpolicy="no-referrer"
+            />
+            <span>{c.name}</span>
+            <span class="contrib-count">{c.count} 个碎片</span>
+          </span>
+        ))}
+      </div>
+    )}
 
     <p>
       「代码碎片 Code Pieces」是我在学习编程语言过程中积累下来的代码片段集合：某个语法的行为验证、某个坑的复现、某个写法的对比测试。仓库里每个源码文件就是一个碎片——片段即目录，文件即卡片，站点构建时自动扫描收录，无需手动登记。

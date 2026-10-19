@@ -1,11 +1,12 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import Comments from '../../components/Comments.astro';
+import Authors from '../../components/Authors.astro';
 import { getSnippets } from '../../lib/snippets';
 import { highlight } from '../../lib/highlight';
 
-export function getStaticPaths() {
-  const snippets = getSnippets();
+export async function getStaticPaths() {
+  const snippets = await getSnippets();
   const last = snippets.length - 1;
   return snippets.map((s, i) => ({
     params: { slug: s.slug },
@@ -43,7 +44,10 @@ const base = rawBase.endsWith('/') ? rawBase.slice(0, -1) : rawBase;
       <span class={`badge badge-${snippet.lang}`}>{snippet.category}</span>
     </div>
     {snippet.desc && <p class="detail-desc">{snippet.desc}</p>}
-    <p class="detail-meta">{snippet.slug}{snippet.ext} · {snippet.lines} 行 · 更新于 {date}</p>
+    <p class="detail-meta">
+      <Authors authors={snippet.authors} />
+      <span>{snippet.slug}{snippet.ext} · {snippet.lines} 行 · 更新于 {date}</span>
+    </p>
     <div class="code-block line-numbers">
       <button class="copy-btn" type="button">复制</button>
       <div set:html={html} />

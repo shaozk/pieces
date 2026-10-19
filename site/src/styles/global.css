@@ -414,6 +414,47 @@ html.dark .card-preview.is-truncated .shiki::after {
   white-space: nowrap;
 }
 
+.card-foot-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.authors {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.author {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.avatar {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.avatar-lg {
+  width: 24px;
+  height: 24px;
+}
+
+.author-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .shiki {
   font-family: var(--mono);
   line-height: 1.65;
@@ -517,6 +558,10 @@ html.dark .shiki span {
   color: var(--muted);
   margin: 0 0 18px;
   font-family: var(--mono);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .code-block {
@@ -713,6 +758,30 @@ html.dark .shiki span {
 }
 
 .about-cat-count {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.about-contribs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+.contrib {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px 5px 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--card);
+  font-size: 13px;
+}
+
+.contrib-count {
   font-family: var(--mono);
   font-size: 12px;
   color: var(--muted);

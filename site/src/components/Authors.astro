@@ -1,0 +1,22 @@
+---
+import type { Author } from '../lib/snippets';
+
+interface Props {
+  authors: Author[];
+}
+
+const { authors } = Astro.props;
+---
+
+{
+  authors.length > 0 && (
+    <span class="authors">
+      {authors.map((a) => (
+        <span class="author" title={a.email}>
+          <img class="avatar" src={a.avatar} alt={a.name} loading="lazy" width="16" height="16" referrerpolicy="no-referrer" />
+          <span class="author-name">{a.name}</span>
+        </span>
+      ))}
+    </span>
+  )
+}

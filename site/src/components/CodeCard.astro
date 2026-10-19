@@ -1,5 +1,6 @@
 ---
 import type { Snippet } from '../lib/snippets';
+import Authors from './Authors.astro';
 import { highlight, truncateLines } from '../lib/highlight';
 
 interface Props {
@@ -26,7 +27,10 @@ const base = rawBase.endsWith('/') ? rawBase.slice(0, -1) : rawBase;
     <div set:html={preview} />
   </div>
   <div class="card-foot">
-    <span>{snippet.lines} 行 · {date}</span>
+    <span class="card-foot-meta">
+      <Authors authors={snippet.authors} />
+      <span>{snippet.lines} 行 · {date}</span>
+    </span>
     <a class="more" href={`${base}/snippet/${snippet.slug}/`}>查看完整代码 →</a>
   </div>
 </article>

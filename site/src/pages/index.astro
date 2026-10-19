@@ -3,7 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import CodeCard from '../components/CodeCard.astro';
 import { getSnippets, getCategories } from '../lib/snippets';
 
-const snippets = getSnippets();
+const snippets = await getSnippets();
 const categories = getCategories(snippets);
 const searchIndex = snippets.map((s) => ({
   slug: s.slug,
