@@ -1,5 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import Comments from '../../components/Comments.astro';
 import { getSnippets } from '../../lib/snippets';
 import { highlight } from '../../lib/highlight';
 
@@ -57,6 +58,7 @@ const base = rawBase.endsWith('/') ? rawBase.slice(0, -1) : rawBase;
         <span class="pager-name">{next.name}</span>
       </a>
     </nav>
+    <Comments />
   </section>
 
   <script>
