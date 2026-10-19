@@ -1,0 +1,96 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { getSnippets, getCategories } from '../lib/snippets';
+import { highlight } from '../lib/highlight';
+
+const snippets = getSnippets();
+const categories = getCategories(snippets).sort((a, b) => b.count - a.count);
+const langs = new Set(snippets.map((s) => s.lang));
+const totalLines = snippets.reduce((sum, s) => sum + s.lines, 0);
+
+const tree = `pieces/
+├── cpp/        # C++ 碎片
+├── python/     # Python 碎片
+├── md/         # Markdown 笔记
+├── …           # 其他语言目录
+└── site/       # 本站点源码（Astro）`;
+
+const cmds = await highlight(
+  `cd site
+npm install
+npm run dev      # 开发预览 http://localhost:4321/pieces/
+npm run build    # 构建产物输出到 site/dist/
+npm run preview  # 本地预览构建产物`,
+  'bash',
+);
+
+const rawBase = import.meta.env.BASE_URL;
+const base = rawBase.endsWith('/') ? rawBase.slice(0, -1) : rawBase;
+---
+
+<Layout title="关于 · 代码碎片" description="代码碎片 Code Pieces - 学习编程语言时积累的代码片段集合">
+  <section class="about">
+    <h1 class="about-title">关于本站</h1>
+    <p class="about-sub">很杂很乱，但真实。</p>
+
+    <div class="about-stats">
+      <div class="stat">
+        <span class="stat-num">{snippets.length}</span>
+        <span class="stat-label">碎片</span>
+      </div>
+      <div class="stat">
+        <span class="stat-num">{categories.length}</span>
+        <span class="stat-label">分类</span>
+      </div>
+      <div class="stat">
+        <span class="stat-num">{langs.size}</span>
+        <span class="stat-label">语言</span>
+      </div>
+      <div class="stat">
+        <span class="stat-num">{totalLines.toLocaleString()}</span>
+        <span class="stat-label">代码行</span>
+      </div>
+    </div>
+
+    <div class="about-cats">
+      {categories.map((c) => (
+        <a class="about-cat" href={`${base}/?cat=${c.dir}`}>
+          <span>{c.label}</span>
+          <span class="about-cat-count">{c.count}</span>
+        </a>
+      ))}
+    </div>
+
+    <p>
+      「代码碎片 Code Pieces」是我在学习编程语言过程中积累下来的代码片段集合：某个语法的行为验证、某个坑的复现、某个写法的对比测试。仓库里每个源码文件就是一个碎片——片段即目录，文件即卡片，站点构建时自动扫描收录，无需手动登记。
+    </p>
+
+    <h2>站点特性</h2>
+    <ul>
+      <li>Shiki 构建时语法高亮，亮/暗主题跟随切换</li>
+      <li>按标题、语言、代码内容全文搜索</li>
+      <li>按目录自动分类，URL 形如 <code>/?cat=python</code></li>
+      <li>详情页键盘 <code>←</code> / <code>→</code> 翻页、一键复制代码</li>
+      <li>详情页 giscus 评论，数据存放在 GitHub Discussions</li>
+    </ul>
+
+    <h2>如何添加碎片</h2>
+    <p>
+      直接在 <code>cpp/</code>、<code>python/</code>、<code>md/</code>
+      等目录下新增源码文件即可，站点构建时自动收录（开发模式下需重启 dev
+      server）。建议在文件首行写一句注释，会作为卡片的简介展示。
+    </p>
+    <pre class="about-tree">{tree}</pre>
+
+    <h2>本地运行</h2>
+    <div class="code-block">
+      <div set:html={cmds} />
+    </div>
+
+    <h2>部署</h2>
+    <p>
+      push 到 GitHub 后由 <code>.github/workflows/deploy.yml</code>
+      自动构建并发布到 GitHub Pages。
+    </p>
+  </section>
+</Layout>
