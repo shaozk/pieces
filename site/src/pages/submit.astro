@@ -1,0 +1,245 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { getSnippets, getCategories, EXT_LANGS } from '../lib/snippets';
+
+const snippets = await getSnippets();
+const categories = getCategories(snippets).sort((a, b) => b.count - a.count);
+const rawBase = import.meta.env.BASE_URL;
+const base = rawBase.endsWith('/') ? rawBase.slice(0, -1) : '';
+const repoUrl = 'https://github.com/shaozk/pieces';
+
+const config = {
+  repo: repoUrl,
+  cats: categories.map((c) => ({ dir: c.dir, label: c.label })),
+  langs: EXT_LANGS,
+};
+const configJson = JSON.stringify(config).replace(/</g, '\\u003c');
+---
+
+<Layout title="提交碎片 · 代码碎片" description="提交你的代码碎片，审核合并后自动上线">
+  <section class="submit-page">
+    <h1 class="submit-title">提交碎片</h1>
+    <p class="submit-intro">
+      填写以下信息并提交后，机器人会自动创建 Pull
+      Request，仓库主人审核合并后碎片即可上线。也可以用备用通道直接在 GitHub
+      编辑器中创建。
+    </p>
+
+    <form id="submit-form" novalidate>
+      <div class="field">
+        <label for="f-cat">分类</label>
+        <select id="f-cat">
+          {categories.map((c) => (
+            <option value={c.dir} selected={c === categories[0]}>{c.label}（{c.dir}/）</option>
+          ))}
+          <option value="__custom__">＋ 自定义新分类…</option>
+        </select>
+        <input
+          id="f-custom-cat"
+          class="hidden"
+          type="text"
+          placeholder="例如 cmake，仅小写字母 / 数字 / - / _"
+          maxlength="20"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <p class="field-error" data-error="cat"></p>
+      </div>
+
+      <div class="field">
+        <label for="f-name">文件名 <span class="label-hint">含扩展名，如 vector_swap.cpp</span></label>
+        <input
+          id="f-name"
+          type="text"
+          placeholder="vector_swap.cpp"
+          maxlength="60"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <p class="field-error" data-error="name"></p>
+      </div>
+
+      <div class="field">
+        <label for="f-desc">简介 <span class="label-hint">可选，将作为卡片简介</span></label>
+        <input id="f-desc" type="text" placeholder="一句话描述这段代码" maxlength="80" autocomplete="off" />
+      </div>
+
+      <div class="field">
+        <label for="f-code">代码</label>
+        <textarea id="f-code" rows="12" placeholder="粘贴你的代码…" spellcheck="false"></textarea>
+        <p class="field-meta"><span data-count>0</span> / 50000 字符</p>
+        <p class="field-error" data-error="code"></p>
+      </div>
+
+      <p class="submit-preview">
+        最终路径：<code data-preview>—</code>
+      </p>
+
+      <div class="submit-actions">
+        <button id="go-issue" type="button" class="submit-btn" disabled>去 GitHub 提交 →</button>
+        <a id="go-editor" class="submit-alt" href={repoUrl} target="_blank" rel="noopener noreferrer">
+          直接在 GitHub 编辑器新建（需手动粘贴）
+        </a>
+      </div>
+    </form>
+  </section>
+
+  <script is:inline type="application/json" id="submit-config" set:html={configJson} />
+
+  <script>
+    const configEl = document.getElementById('submit-config');
+    const cfg = JSON.parse(configEl?.textContent ?? '{}') as {
+      repo: string;
+      cats: { dir: string; label: string }[];
+      langs: Record<string, string>;
+    };
+
+    const DIR_RE = /^[a-z0-9_-]{1,20}$/;
+    const NAME_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
+    const MAX_CODE = 50000;
+
+    const catSel = document.getElementById('f-cat') as HTMLSelectElement | null;
+    const catCustom = document.getElementById('f-custom-cat') as HTMLInputElement | null;
+    const nameIn = document.getElementById('f-name') as HTMLInputElement | null;
+    const descIn = document.getElementById('f-desc') as HTMLInputElement | null;
+    const codeIn = document.getElementById('f-code') as HTMLTextAreaElement | null;
+    const countEl = document.querySelector<HTMLElement>('[data-count]');
+    const previewEl = document.querySelector<HTMLElement>('[data-preview]');
+    const goIssue = document.getElementById('go-issue') as HTMLButtonElement | null;
+    const goEditor = document.getElementById('go-editor') as HTMLAnchorElement | null;
+
+    const err = (key: string, msg?: string) => {
+      const el = document.querySelector<HTMLElement>(`[data-error="${key}"]`);
+      if (el) el.textContent = msg ?? '';
+    };
+
+    function currentCat(): string {
+      const v = catSel?.value ?? '';
+      return v === '__custom__' ? (catCustom?.value.trim().toLowerCase() ?? '') : v;
+    }
+
+    function extOf(name: string): string {
+      const i = name.lastIndexOf('.');
+      return i === -1 ? '' : name.slice(i).toLowerCase();
+    }
+
+    function validate(): { ok: boolean; cat: string; name: string; code: string; desc: string } {
+      const cat = currentCat();
+      const name = nameIn?.value.trim() ?? '';
+      const code = codeIn?.value ?? '';
+      const desc = descIn?.value.trim() ?? '';
+      let ok = true;
+
+      const isCustom = catSel?.value === '__custom__';
+      if (isCustom && !DIR_RE.test(cat)) {
+        err('cat', '自定义分类仅支持小写字母、数字、- 和 _，长度 1-20');
+        ok = false;
+      } else {
+        err('cat');
+      }
+
+      const ext = extOf(name);
+      if (!name) {
+        err('name', '请填写文件名');
+        ok = false;
+      } else if (!NAME_RE.test(name)) {
+        err('name', '文件名仅支持字母、数字、点、下划线和连字符，且不能以点开头');
+        ok = false;
+      } else if (!cfg.langs[ext]) {
+        const exts = [...new Set(Object.keys(cfg.langs))].join(' ');
+        err('name', `不支持的扩展名「${ext || name}」，支持：${exts}`);
+        ok = false;
+      } else {
+        err('name');
+      }
+
+      const codeTrimmed = code.trim();
+      if (!codeTrimmed) {
+        err('code', '代码不能为空');
+        ok = false;
+      } else if (code.length > MAX_CODE) {
+        err('code', `代码超过 ${MAX_CODE} 字符上限`);
+        ok = false;
+      } else {
+        err('code');
+      }
+
+      return { ok, cat, name, code, desc };
+    }
+
+    function update() {
+      if (!codeIn || !countEl || !previewEl || !goIssue || !goEditor) return;
+      countEl.textContent = String(codeIn.value.length);
+      const { ok, cat, name, code } = validate();
+      if (cat && name && NAME_RE.test(name)) {
+        previewEl.textContent = `${cat}/${name}`;
+      } else {
+        previewEl.textContent = '—';
+      }
+      goIssue.disabled = !ok;
+      goEditor.href = ok
+        ? `${cfg.repo}/new/main?filename=${encodeURIComponent(`${cat}/${name}`)}`
+        : cfg.repo;
+    }
+
+    function buildBody(cat: string, name: string, desc: string, code: string): string {
+      const ext = extOf(name);
+      const lang = cfg.langs[ext] ?? '';
+      const fenced = `\`\`\`\`${lang}\n${code.replace(/\s+$/, '')}\n\`\`\`\``;
+      return [
+        '<!-- 本 Issue 由网站提交页自动生成，机器人会自动处理 -->',
+        '',
+        '### 分类',
+        '',
+        cat,
+        '',
+        '### 文件名',
+        '',
+        name,
+        '',
+        '### 简介',
+        '',
+        desc || '',
+        '',
+        '### 代码',
+        '',
+        fenced,
+        '',
+      ].join('\n');
+    }
+
+    goIssue?.addEventListener('click', () => {
+      const { ok, cat, name, code, desc } = validate();
+      if (!ok) return;
+      const title = `[碎片] ${cat}/${name}`;
+      const body = buildBody(cat, name, desc, code);
+      const url = `${cfg.repo}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
+      window.open(url, '_blank', 'noopener');
+    });
+
+    goEditor?.addEventListener('click', (e) => {
+      const { ok, code } = validate();
+      if (!ok) {
+        e.preventDefault();
+        return;
+      }
+      navigator.clipboard?.writeText(code).then(() => {
+        const old = goEditor.textContent;
+        goEditor.textContent = '代码已复制，请在打开的编辑器中粘贴～';
+        setTimeout(() => {
+          goEditor.textContent = old;
+        }, 3000);
+      });
+    });
+
+    catSel?.addEventListener('change', () => {
+      catCustom?.classList.toggle('hidden', catSel.value !== '__custom__');
+      if (catSel.value === '__custom__') catCustom?.focus();
+      update();
+    });
+    for (const el of [catCustom, nameIn, descIn, codeIn]) {
+      el?.addEventListener('input', update);
+    }
+    update();
+  </script>
+</Layout>

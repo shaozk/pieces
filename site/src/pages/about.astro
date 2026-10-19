@@ -150,37 +150,11 @@ const base = rawBase.endsWith('/') ? rawBase.slice(0, -1) : rawBase;
     <section class="about-submit">
       <h2>提交你的碎片</h2>
       <p class="submit-desc">
-        选择分类，在 GitHub 网页编辑器中粘贴代码并提交，GitHub
-        会自动引导你发起 Pull Request，合并后碎片就会出现在本站。
+        在提交页填写分类、文件名和代码，机器人会自动创建 Pull
+        Request，审核合并后碎片就会出现在本站。
       </p>
-      <div class="submit-controls">
-        <select id="submit-cat" aria-label="选择碎片分类">
-          <option value="">自动 / 新分类</option>
-          {categories.map((c) => (
-            <option value={c.dir}>{c.label}（{c.dir}/）</option>
-          ))}
-        </select>
-        <a id="submit-btn" class="submit-btn" href="https://github.com/shaozk/pieces/new/main" target="_blank" rel="noopener noreferrer">
-          在 GitHub 上提交 →
-        </a>
-      </div>
-      <p class="submit-hint">提示：文件首行写一句注释会作为卡片简介；想新建分类，直接把文件放进新目录即可。</p>
+      <a class="submit-btn" href={`${base}/submit/`}>去提交碎片 →</a>
     </section>
 
   </section>
-
-  <script>
-    const select = document.querySelector<HTMLSelectElement>('#submit-cat');
-    const btn = document.querySelector<HTMLAnchorElement>('#submit-btn');
-    const repoUrl = 'https://github.com/shaozk/pieces';
-    const update = () => {
-      if (!btn) return;
-      const dir = select?.value ?? '';
-      btn.href = dir
-        ? `${repoUrl}/new/main?filename=${encodeURIComponent(`${dir}/`)}`
-        : `${repoUrl}/new/main`;
-    };
-    select?.addEventListener('change', update);
-    update();
-  </script>
 </Layout>

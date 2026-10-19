@@ -25,7 +25,7 @@ export interface Snippet {
   authors: Author[];
 }
 
-const EXT_LANGS: Record<string, string> = {
+export const EXT_LANGS: Record<string, string> = {
   '.cpp': 'cpp',
   '.cc': 'cpp',
   '.cxx': 'cpp',

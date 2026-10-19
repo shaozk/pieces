@@ -1,0 +1,86 @@
+name: Snippet submit bot
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: snippet-bot-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  handle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Parse and validate issue
+        env:
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: python3 .github/scripts/bot.py > result.json
+
+      - name: Read result
+        id: result
+        run: echo "action=$(jq -r .action result.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Reject invalid submission
+        if: steps.result.outputs.action == 'reject'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE: ${{ github.event.issue.number }}
+        run: |
+          {
+            echo "碎片提交未能通过校验："
+            echo
+            jq -r '.errors[]' result.json | sed 's/^/- /'
+            echo
+            echo "请通过网站[提交页](https://shaozk.github.io/pieces/submit/)重新提交。"
+          } > comment.md
+          gh issue comment "$ISSUE" --body-file comment.md
+          gh issue close "$ISSUE" --reason "not planned"
+
+      - name: Create snippet branch
+        if: steps.result.outputs.action == 'pr'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "snippet-${{ github.event.issue.number }}"
+          python3 - <<'EOF'
+          import json, pathlib
+          r = json.load(open('result.json'))
+          p = pathlib.Path(r['path'])
+          p.parent.mkdir(parents=True, exist_ok=True)
+          p.write_text(r['content'], encoding='utf-8')
+          print('wrote', r['path'])
+          EOF
+          git add "$(jq -r .path result.json)"
+          git commit -m "碎片: 新增 $(jq -r .path result.json) (#${{ github.event.issue.number }})"
+          git push origin "HEAD:snippet-${{ github.event.issue.number }}"
+
+      - name: Open pull request
+        if: steps.result.outputs.action == 'pr'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE: ${{ github.event.issue.number }}
+        run: |
+          gh pr create \
+            --title "[碎片] $(jq -r .path result.json)" \
+            --body "由 Issue #${ISSUE} 自动创建，合并后站点自动重建发布。
+
+          Closes #${ISSUE}" \
+            --base main
+
+      - name: Notify issue
+        if: steps.result.outputs.action == 'pr'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE: ${{ github.event.issue.number }}
+        run: |
+          PR_URL=$(gh pr list --head "snippet-${ISSUE}" --json url --jq '.[0].url')
+          gh issue comment "$ISSUE" --body "已创建 Pull Request：${PR_URL}
+          审核合并后碎片将自动上线，本 Issue 会随之自动关闭。"
