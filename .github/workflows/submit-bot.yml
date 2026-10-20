@@ -61,7 +61,7 @@ jobs:
           EOF
           git add "$(jq -r .path "$RUNNER_TEMP/result.json")"
           git commit -m "碎片: 新增 $(jq -r .path "$RUNNER_TEMP/result.json") (#${{ github.event.issue.number }})"
-          git push origin "HEAD:snippet-${{ github.event.issue.number }}"
+          git push --force origin "HEAD:snippet-${{ github.event.issue.number }}"
 
       - name: Open pull request
         if: steps.result.outputs.action == 'pr'
