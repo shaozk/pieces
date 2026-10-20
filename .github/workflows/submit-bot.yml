@@ -7,6 +7,7 @@ on:
 permissions:
   contents: write
   issues: write
+  pull-requests: write
 
 concurrency:
   group: snippet-bot-${{ github.event.issue.number }}
@@ -22,11 +23,11 @@ jobs:
         env:
           ISSUE_TITLE: ${{ github.event.issue.title }}
           ISSUE_BODY: ${{ github.event.issue.body }}
-        run: python3 .github/scripts/bot.py > result.json
+        run: python3 .github/scripts/bot.py > "$RUNNER_TEMP/result.json"
 
       - name: Read result
         id: result
-        run: echo "action=$(jq -r .action result.json)" >> "$GITHUB_OUTPUT"
+        run: echo "action=$(jq -r .action "$RUNNER_TEMP/result.json")" >> "$GITHUB_OUTPUT"
 
       - name: Reject invalid submission
         if: steps.result.outputs.action == 'reject'
@@ -37,11 +38,11 @@ jobs:
           {
             echo "碎片提交未能通过校验："
             echo
-            jq -r '.errors[]' result.json | sed 's/^/- /'
+            jq -r '.errors[]' "$RUNNER_TEMP/result.json" | sed 's/^/- /'
             echo
             echo "请通过网站[提交页](https://shaozk.github.io/pieces/submit/)重新提交。"
-          } > comment.md
-          gh issue comment "$ISSUE" --body-file comment.md
+          } > "$RUNNER_TEMP/comment.md"
+          gh issue comment "$ISSUE" --body-file "$RUNNER_TEMP/comment.md"
           gh issue close "$ISSUE" --reason "not planned"
 
       - name: Create snippet branch
@@ -50,16 +51,16 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git checkout -b "snippet-${{ github.event.issue.number }}"
-          python3 - <<'EOF'
-          import json, pathlib
-          r = json.load(open('result.json'))
+          RESULT="$RUNNER_TEMP/result.json" python3 - <<'EOF'
+          import json, os, pathlib
+          r = json.load(open(os.environ['RESULT']))
           p = pathlib.Path(r['path'])
           p.parent.mkdir(parents=True, exist_ok=True)
           p.write_text(r['content'], encoding='utf-8')
           print('wrote', r['path'])
           EOF
-          git add "$(jq -r .path result.json)"
-          git commit -m "碎片: 新增 $(jq -r .path result.json) (#${{ github.event.issue.number }})"
+          git add "$(jq -r .path "$RUNNER_TEMP/result.json")"
+          git commit -m "碎片: 新增 $(jq -r .path "$RUNNER_TEMP/result.json") (#${{ github.event.issue.number }})"
           git push origin "HEAD:snippet-${{ github.event.issue.number }}"
 
       - name: Open pull request
@@ -69,7 +70,7 @@ jobs:
           ISSUE: ${{ github.event.issue.number }}
         run: |
           gh pr create \
-            --title "[碎片] $(jq -r .path result.json)" \
+            --title "[碎片] $(jq -r .path "$RUNNER_TEMP/result.json")" \
             --body "由 Issue #${ISSUE} 自动创建，合并后站点自动重建发布。
 
           Closes #${ISSUE}" \
