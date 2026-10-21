@@ -53,6 +53,7 @@ export const EXT_LANGS: Record<string, string> = {
   '.yaml': 'yaml',
   '.yml': 'yaml',
   '.toml': 'toml',
+  '.cmake': 'cmake',
 };
 
 const IGNORED_DIRS = new Set(['site', 'assets', 'node_modules', 'dist']);
@@ -60,9 +61,10 @@ const IGNORED_DIRS = new Set(['site', 'assets', 'node_modules', 'dist']);
 const LABEL_OVERRIDES: Record<string, string> = {
   cpp: 'C++',
   md: 'Markdown',
+  cmake: 'CMake',
 };
 
-const HASH_COMMENT_LANGS = new Set(['python', 'bash', 'yaml', 'toml']);
+const HASH_COMMENT_LANGS = new Set(['python', 'bash', 'yaml', 'toml', 'cmake']);
 
 const REPO_ROOT = fileURLToPath(new URL('../../..', import.meta.url));
 

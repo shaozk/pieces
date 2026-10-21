@@ -415,6 +415,11 @@ html.dark .icon-moon {
   color: #fff;
 }
 
+.badge-cmake {
+  background: #064f8c;
+  color: #fff;
+}
+
 .card-desc {
   padding: 0 16px;
   margin: 0 0 10px;

@@ -23,8 +23,9 @@ npm run build    # 构建产物输出到 site/dist/
 npm run preview  # 本地预览构建产物
 ```
 
-新增碎片：直接在 `cpp/`、`python/`、`md/` 目录下添加源码文件即可，
+新增碎片：直接在 `cpp/`、`python/`、`md/`、`cmake/` 等目录下添加源码文件即可，
 站点构建时自动扫描收录（开发模式下新增文件需重启 dev server）。
+`cmake/` 下的碎片是 CMake 脚本（`.cmake`），可直接 `cmake -P xxx.cmake` 运行验证。
 建议在文件首行写一句注释，会作为卡片的简介展示。
 
 部署：push 到 GitHub 后由 `.github/workflows/deploy.yml` 自动构建并发布到
