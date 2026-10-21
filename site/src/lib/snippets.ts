@@ -17,6 +17,7 @@ export interface Snippet {
   desc: string | null;
   dir: string;
   category: string;
+  tags: string[];
   lang: string;
   code: string;
   lines: number;
@@ -231,6 +232,10 @@ function dirLabel(dir: string): string {
   return LABEL_OVERRIDES[dir] ?? dir.charAt(0).toUpperCase() + dir.slice(1);
 }
 
+export function tagLabel(tag: string): string {
+  return LABEL_OVERRIDES[tag] ?? tag.charAt(0).toUpperCase() + tag.slice(1);
+}
+
 export async function getSnippets(): Promise<Snippet[]> {
   const snippets: Snippet[] = [];
   const gitInfo = await gitInfoMap();
@@ -256,6 +261,7 @@ export async function getSnippets(): Promise<Snippet[]> {
         desc: extractDesc(code, lang),
         dir,
         category,
+        tags: `${dir}/${stem}`.split('/').slice(0, -1),
         lang,
         code,
         lines: code.replace(/\n$/, '').split('\n').length,

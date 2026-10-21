@@ -2,7 +2,7 @@
 import Layout from '../../layouts/Layout.astro';
 import Comments from '../../components/Comments.astro';
 import Authors from '../../components/Authors.astro';
-import { getSnippets } from '../../lib/snippets';
+import { getSnippets, tagLabel } from '../../lib/snippets';
 import { highlight } from '../../lib/highlight';
 
 export async function getStaticPaths() {
@@ -36,12 +36,24 @@ const base = rawBase.endsWith('/') ? rawBase.slice(0, -1) : rawBase;
       </a>
       <span class="sep">/</span>
       <a href={`${base}/?cat=${snippet.dir}`}>{snippet.category}</a>
+      {snippet.tags.slice(1).map((t) => (
+        <Fragment>
+          <span class="sep">/</span>
+          <a href={`${base}/?tag=${t}`}>{tagLabel(t)}</a>
+        </Fragment>
+      ))}
       <span class="sep">/</span>
       <span>{snippet.name}{snippet.ext}</span>
     </nav>
     <div class="detail-head">
       <h1 class="detail-title">{snippet.name}</h1>
-      <span class={`badge badge-${snippet.lang}`}>{snippet.category}</span>
+      <span class="card-tags">
+        {snippet.tags.map((t, i) => (
+          <a class:list={['badge', i === 0 && `badge-${snippet.lang}`, i > 0 && 'badge-sub']} href={`${base}/?tag=${t}`}>
+            {tagLabel(t)}
+          </a>
+        ))}
+      </span>
     </div>
     {snippet.desc && <p class="detail-desc">{snippet.desc}</p>}
     <p class="detail-meta">

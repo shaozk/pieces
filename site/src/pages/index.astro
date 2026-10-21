@@ -10,6 +10,7 @@ const searchIndex = snippets.map((s) => ({
   name: s.name,
   dir: s.dir,
   category: s.category,
+  tags: s.tags,
   code: s.code,
 }));
 const indexJson = JSON.stringify(searchIndex).replace(/</g, '\\u003c');
@@ -33,6 +34,7 @@ const indexJson = JSON.stringify(searchIndex).replace(/</g, '\\u003c');
       ))}
     </div>
     <p class="result-meta" id="result-meta"></p>
+    <button class="tag-active hidden" id="tag-active" type="button" aria-label="清除标签过滤"></button>
   </section>
 
   <section class="grid" id="grid">
@@ -58,29 +60,51 @@ const indexJson = JSON.stringify(searchIndex).replace(/</g, '\\u003c');
     const meta = document.getElementById('result-meta');
     const empty = document.getElementById('empty');
     const grid = document.getElementById('grid');
+    const tagActive = document.getElementById('tag-active') as HTMLButtonElement | null;
     const total = data.length;
 
-    let cat = new URLSearchParams(location.search).get('cat') ?? 'all';
+    const params = new URLSearchParams(location.search);
+    let cat = params.get('cat') ?? 'all';
     if (!chips.some((c) => c.dataset.cat === cat)) cat = 'all';
+    const validTags = new Set(data.flatMap((d) => d.tags));
+    let tag = params.get('tag') ?? '';
+    if (!validTags.has(tag)) tag = '';
     let q = '';
+
+    function syncUrl() {
+      const url = new URL(location.href);
+      cat === 'all' ? url.searchParams.delete('cat') : url.searchParams.set('cat', cat);
+      tag ? url.searchParams.set('tag', tag) : url.searchParams.delete('tag');
+      history.replaceState(null, '', url);
+    }
 
     function apply() {
       const query = q.toLowerCase();
       let visible = 0;
       for (const item of data) {
         const okCat = cat === 'all' || item.dir === cat;
+        const okTag = !tag || item.tags.includes(tag);
         const okQ =
           !query ||
           item.name.toLowerCase().includes(query) ||
           item.dir.toLowerCase().includes(query) ||
           item.category.toLowerCase().includes(query) ||
+          item.tags.some((t) => t.toLowerCase().includes(query)) ||
           item.code.toLowerCase().includes(query);
-        const show = okCat && okQ;
+        const show = okCat && okTag && okQ;
         cards.get(item.slug)?.classList.toggle('hidden', !show);
         if (show) visible++;
       }
       if (meta) {
-        meta.textContent = query ? `${visible} / ${total} 个碎片匹配「${q}」` : `共 ${total} 个碎片`;
+        const parts: string[] = [];
+        if (tag) parts.push(`标签 ${tag}`);
+        if (query) parts.push(`${visible} / ${total} 个碎片匹配「${q}」`);
+        else if (tag) parts.push(`${visible} 个碎片`);
+        meta.textContent = parts.length ? parts.join(' · ') : `共 ${total} 个碎片`;
+      }
+      if (tagActive) {
+        tagActive.textContent = `标签：${tag} ✕`;
+        tagActive.classList.toggle('hidden', !tag);
       }
       empty?.classList.toggle('hidden', visible !== 0);
       grid?.classList.toggle('hidden', visible === 0);
@@ -89,14 +113,18 @@ const indexJson = JSON.stringify(searchIndex).replace(/</g, '\\u003c');
     for (const chip of chips) {
       chip.addEventListener('click', () => {
         cat = chip.dataset.cat ?? 'all';
+        tag = '';
         chips.forEach((c) => c.classList.toggle('active', c === chip));
-        const url = new URL(location.href);
-        if (cat === 'all') url.searchParams.delete('cat');
-        else url.searchParams.set('cat', cat);
-        history.replaceState(null, '', url);
+        syncUrl();
         apply();
       });
     }
+
+    tagActive?.addEventListener('click', () => {
+      tag = '';
+      syncUrl();
+      apply();
+    });
 
     input?.addEventListener('input', () => {
       q = input.value.trim();

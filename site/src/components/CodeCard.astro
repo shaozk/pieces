@@ -1,5 +1,6 @@
 ---
 import type { Snippet } from '../lib/snippets';
+import { tagLabel } from '../lib/snippets';
 import Authors from './Authors.astro';
 import { highlight, truncateLines } from '../lib/highlight';
 
@@ -20,7 +21,13 @@ const base = rawBase.endsWith('/') ? rawBase.slice(0, -1) : rawBase;
     <h2 class="card-title">
       <a href={`${base}/snippet/${snippet.slug}/`}>{snippet.name}</a>
     </h2>
-    <span class={`badge badge-${snippet.lang}`}>{snippet.category}</span>
+    <span class="card-tags">
+      {snippet.tags.map((t, i) => (
+        <a class:list={['badge', i === 0 && `badge-${snippet.lang}`, i > 0 && 'badge-sub']} href={`${base}/?tag=${t}`}>
+          {tagLabel(t)}
+        </a>
+      ))}
+    </span>
   </div>
   {snippet.desc && <p class="card-desc">{snippet.desc}</p>}
   <div class:list={['card-preview', truncated && 'is-truncated']}>
