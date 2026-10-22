@@ -13,7 +13,6 @@ void func() {
 }
 TMP_NAMESPACE_END
 
-
 int main() {
   tmp::func();
   return 0;
