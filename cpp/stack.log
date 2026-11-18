@@ -1,0 +1,35 @@
+GNU gdb (Ubuntu 15.0.50.20240403-0ubuntu1) 15.0.50.20240403-git
+Copyright (C) 2024 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+Type "show copying" and "show warranty" for details.
+This GDB was configured as "aarch64-linux-gnu".
+Type "show configuration" for configuration details.
+For bug reporting instructions, please see:
+<https://www.gnu.org/software/gdb/bugs/>.
+Find the GDB manual and other documentation resources online at:
+    <http://www.gnu.org/software/gdb/documentation/>.
+
+For help, type "help".
+Type "apropos word" to search for commands related to "word".
+Attaching to process 913312
+Reading symbols from /media/psf/code/pieces/cpp/a.out...
+(No debugging symbols found in /media/psf/code/pieces/cpp/a.out)
+Reading symbols from /lib/aarch64-linux-gnu/libstdc++.so.6...
+(No debugging symbols found in /lib/aarch64-linux-gnu/libstdc++.so.6)
+Reading symbols from /lib/aarch64-linux-gnu/libgcc_s.so.1...
+(No debugging symbols found in /lib/aarch64-linux-gnu/libgcc_s.so.1)
+Reading symbols from /lib/aarch64-linux-gnu/libc.so.6...
+Reading symbols from /usr/lib/debug/.build-id/54/ae5337044aaabab70d65e0c3444f7e4735e059.debug...
+Reading symbols from /lib/ld-linux-aarch64.so.1...
+Reading symbols from /usr/lib/debug/.build-id/b3/fde6c361ed8c63693b267a1209d5dd9bd920b9.debug...
+Reading symbols from /lib/aarch64-linux-gnu/libm.so.6...
+Reading symbols from /usr/lib/debug/.build-id/21/4207f30cc54db4f5b6e8b809c012f66afd38a0.debug...
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/aarch64-linux-gnu/libthread_db.so.1".
+0x0000b2511a720f50 in slow_algorithm() ()
+
+Thread 1 (Thread 0xfa7b9700f160 (LWP 913312) "a.out"):
+Detaching from program: /media/psf/code/pieces/cpp/a.out, process 913312
+[Inferior 1 (process 913312) detached]
